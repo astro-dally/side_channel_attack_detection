@@ -1,0 +1,40 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.env/
+.env*/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Data files (large)
+/data/
+*.csv
+*.tsv
+*.log
+
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.blg
+*.brf
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.synctex.gz(busy)
+*.pdfsync
+
+# Build artifacts
+/build/
+/dist/
+
+# OS generated files
+.DS_Store
+Thumbs.db

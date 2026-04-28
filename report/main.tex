@@ -1,0 +1,231 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage[hidelinks]{hyperref}
+\usepackage{float}
+
+\title{AI for OS-Level Side-Channel Attack Detection and Mitigation in Linux Kernels}
+
+\author{
+\IEEEauthorblockN{[Your Name]}
+\IEEEauthorblockA{
+Roll No.: [Your Roll Number] \\
+Department / Institution: [Your Department and Institution] \\
+Workspace: \texttt{\textasciitilde/SideChannelAI}
+}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Side-channel attacks exploit microarchitectural behavior rather than software permission violations, allowing adversaries to leak sensitive information through cache access patterns, speculative execution effects, and memory disturbance behavior. This report presents a final integrated Linux-oriented detection framework that uses hardware performance counters (HPCs) and machine learning to distinguish benign execution from cache-based attack activity. Raw traces were collected from Ubuntu 24.04 LTS and Fedora 40 using \texttt{perf stat} at a 50 ms sampling interval over six baseline events. A hybrid ingestion pipeline normalizes the differing output formats produced by Ubuntu and Fedora. The finalized project achieves a peak Random Forest accuracy of 100\% on Fedora and 99.95\% on Ubuntu, with F1-scores exceeding 0.999. Cross-OS generalization (Ubuntu-trained model detecting Fedora attacks) achieves over 99.36\% accuracy. The final notebook integrates feature engineering, Random Forest, SVM, and CNN-LSTM evaluation, automatic exporting of figures to \texttt{results/}, and runtime deployment preparation. A companion real-time monitor script performs sliding-window inference over streamed HPC measurements.
+\end{abstract}
+
+\section{Introduction}
+Microarchitectural side-channel attacks remain a serious systems security challenge because they leak information by observing shared hardware behavior rather than by breaking software isolation directly. Attacks such as Spectre, Meltdown, Prime+Probe, and Flush+Reload have shown that secrets can be inferred from cache activity and speculative execution side effects \cite{spectre,meltdown,yarom,liu}. As a result, the operating system kernel may enforce correct privilege boundaries while still being unable to detect information leakage in real time.
+
+This project focuses on cache-based covert-channel and side-channel detection in Linux systems using hardware performance counters. The core idea is that attack activity produces measurable deviations in counters such as cache misses, cache references, and branch behavior. By utilizing machine learning models to detect these deviations, we can build a deployable runtime security monitor. 
+
+\section{Related Work}
+Prior research has established the feasibility of exploiting processor internals for data leakage. Spectre \cite{spectre} demonstrated that speculative execution can expose sensitive data through observable side effects, while Meltdown \cite{meltdown} showed that protected kernel memory can be transiently read from user space. Cache-specific attacks, such as FLUSH+RELOAD \cite{yarom} and Prime+Probe \cite{liu}, provide practical methods for extracting cryptographic keys via Last-Level Cache (LLC) side-channels.
+
+At the systems level, Linux \texttt{perf} and the underlying performance monitoring infrastructure provide access to hardware performance counters (HPCs) that can capture low-level execution patterns \cite{perfwiki,intelsdm}. On the machine learning side, Random Forests offer strong nonlinear classification \cite{musleh}, while Support Vector Machines provide compact discriminative models. Sequence-aware deep models such as CNN-LSTM hybrids are highly effective for temporal attack detection \cite{surveydl}. Furthermore, applying operating systems fundamentals \cite{tanenbaum} regarding process isolation provides critical context for hardware siloing challenges encountered during cross-architecture development.
+
+\section{Problem Description}
+The problem addressed in this work is the real-time detection of cache-based side-channel attack activity in Linux using hardware performance counters, while maintaining high accuracy, low false-positive rate, and low runtime overhead. Software permissions do not directly expose microarchitectural leakage. Traditional static threshold monitoring is too brittle because legitimate workloads exhibit bursts of cache activity (system jitter). The system must learn to distinguish between benign OS noise and attack noise using near-zero overhead telemetry.
+
+\section{Methodology / Algorithm}
+The methodology consists of six stages:
+
+\begin{enumerate}
+  \item \textbf{Collect}: Capture HPC telemetry (6 core counters) using \texttt{perf stat} at 50 ms intervals.
+  \item \textbf{Normalize}: Process Ubuntu CSV-style and Fedora delimiter-shifted logs into a unified schema using a hybrid regex-based parser.
+  \item \textbf{Pivot}: Transform vertical event logs into one row per timestamp with one column per event.
+  \item \textbf{Engineer}: Construct 36 features including raw counters, IPC/CPI ratios, miss rates, temporal first-differences, and short-term rolling statistics.
+  \item \textbf{Train}: Compare Random Forest, Linear SVM, and CNN-LSTM architectures.
+  \item \textbf{Deploy}: Export artifacts to \texttt{artifacts/} and use a sliding-window runtime monitor (\texttt{realtime\_hpc\_monitor.py}) for live inference.
+\end{enumerate}
+
+\subsection{Pseudocode}
+\begin{verbatim}
+Algorithm DetectSideChannel(HPC_stream, trained_model)
+Input: live HPC stream sampled every 50 ms
+Output: attack label and score
+
+1. Append current sample to buffer
+2. If buffer is smaller than window, continue collecting
+3. Rebuild engineered features (ratios, diffs, rolling)
+4. Apply training-time normalization
+5. Run model inference (RF / SVM / CNN-LSTM)
+6. Compute attack score
+7. If score >= threshold, emit ATTACK alert
+8. Slide window forward and save log
+\end{verbatim}
+
+\section{System Architecture}
+The system architecture separates collection, feature construction, model inference, and result persistence. 
+
+\begin{itemize}
+    \item \textbf{Collection Layer}: Custom \texttt{victim.c}/\texttt{attacker.c} workloads are monitored by the Linux \texttt{perf} utility.
+    \item \textbf{Parsing Layer}: A hybrid delimiter engine normalizes OS-specific telemetry outputs. A 10ms Bucket Rounding algorithm was engineered to aggregate asynchronous hardware events, reducing RAM consumption by 98\%.
+    \item \textbf{Inference Layer}: Evaluates classical (RF, SVM) and deep (CNN-LSTM) models in user-space.
+    \item \textbf{Deployment Assets}: Models are persisted to \texttt{artifacts/}, and experimental output (plots, CSVs) is auto-saved to \texttt{Research\_Results/}.
+\end{itemize}
+
+\subsection{CNN-LSTM Hybrid Architecture}
+The most advanced model implemented is a CNN-LSTM hybrid. It captures both the spatial signatures of cache contention (Conv1D) and the temporal progression of eviction cycles over the 1-second (20-timestep) sliding window (LSTM).
+
+\begin{table}[H]
+\centering
+\caption{CNN-LSTM Layer Architecture}
+\begin{tabular}{ll>{\raggedright\arraybackslash}p{2.5cm}l}
+\toprule
+\textbf{Layer} & \textbf{Type} & \textbf{Parameters} & \textbf{Output Shape} \\
+\midrule
+Input & Sequence & 20 timesteps, 14 feats & (20, 14) \\
+1 & Conv1D & 64 filters, k=3, ReLU & (20, 64) \\
+2 & BatchNorm & — & (20, 64) \\
+3 & Conv1D & 64 filters, k=3, ReLU & (20, 64) \\
+4 & MaxPool1D & pool=2 & (10, 64) \\
+5 & LSTM & 64 units & (64,) \\
+6 & Dense & 32 units, ReLU & (32,) \\
+7 & Dropout & rate=0.3 & (32,) \\
+8 & Dense (Out) & 1 unit, Sigmoid & (1,) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Training utilizes the Adam optimizer, binary cross-entropy loss, 25 epochs (with EarlyStopping patience=5), batch size of 128, and a 20\% validation split.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{../Research_Results/ubuntu_cnn_lstm_training_history.png}
+\caption{CNN-LSTM Training History (Ubuntu Dataset).}
+\end{figure}
+
+\section{Complexity Analysis}
+Let $N$ be the number of samples, $F$ the number of features, $T$ the number of trees in the Random Forest, and $W$ the window size. Raw ingestion is $O(N)$. Feature engineering is $O(N \cdot F)$. RF training is $O(T \cdot N \log N \cdot F_{sub})$. SVM training is $O(E \cdot N \cdot F)$. Runtime inference buffering cost is dominated by $O(W \cdot F)$.
+
+\section{Experimental Setup}
+The multi-OS dataset comprises 150,519 samples from Ubuntu 24.04 LTS and 59,020 samples from Fedora 40. Telemetry was sampled at 50 ms. Six base features were logged: \texttt{cache-misses}, \texttt{cache-references}, \texttt{instructions}, \texttt{cycles}, \texttt{branches}, and \texttt{branch-misses}.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{../Research_Results/ubuntu_correlation_heatmap.png}
+\caption{Feature Correlation Heatmap (Ubuntu Dataset).}
+\end{figure}
+
+Data preprocessing addressed "Hardware Siloing" on ARM/Android devices, pivoting focus to x86 Linux distributions. A double-collector race condition was mitigated using strict PID isolation.
+
+\section{Results and Analysis}
+
+\subsection{Per-OS Model Comparison}
+The results demonstrate near-perfect separability of attack and benign processes using hardware performance counters across both evaluated operating systems. 
+
+\begin{table}[H]
+\centering
+\caption{Overall Model Comparison (Ubuntu)}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+Random Forest & 99.95\% & 99.99\% & 99.91\% & 0.9995 \\
+SVM & 99.90\% & 99.99\% & 99.81\% & 0.9990 \\
+CNN-LSTM & 99.65\% & 99.50\% & 99.83\% & 0.9966 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On the Fedora dataset (59,020 samples), all three models achieved 100\% validation metrics across accuracy, precision, and recall.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{../Research_Results/per_os_model_comparison_f1.png}
+\caption{Per-OS Model Comparison (F1-Score).}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{../Research_Results/ubuntu_random_forest_confusion_matrix.png}
+\caption{Random Forest Confusion Matrix (Ubuntu).}
+\end{figure}
+
+\subsection{Cross-OS Validation}
+To prove distribution portability (Objective 4), models trained exclusively on Ubuntu traces were evaluated against unseen Fedora traces.
+
+\begin{table}[H]
+\centering
+\caption{Cross-OS Transfer Metrics (Ubuntu $\rightarrow$ Fedora)}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} \\
+\midrule
+Random Forest & 99.36\% & 98.40\% & 99.99\% & 0.9919 \\
+SVM & 99.97\% & 99.98\% & 99.93\% & 0.9996 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\linewidth]{../Research_Results/cross_os_random_forest_confusion_matrix.png}
+\caption{Cross-OS Random Forest Confusion Matrix.}
+\end{figure}
+
+The SVM demonstrated exceptional distribution resilience, maintaining 99.97\% cross-OS accuracy. Random Forest also generalized strongly (>99.3\%).
+
+\section{Challenges and Limitations}
+Major engineering hurdles resolved include:
+\begin{itemize}
+    \item Memory exhaustion during sparse matrix pivoting (resolved via 10ms bucket rounding).
+    \item Hybrid delimiter parsing to support \texttt{dnf5} Fedora traces vs \texttt{apt} Ubuntu traces.
+    \item PID-level process isolation to prevent \texttt{perf} race conditions.
+\end{itemize}
+
+Limitations remain. Cross-architecture proofs across Intel, AMD, and ARM face significant mobile kernel restrictions (\texttt{perf\_event\_paranoid}). Furthermore, evasion resistance against polymorphic side-channel behavior requires dedicated adversary benchmarking.
+
+\section{Conclusion and Future Work}
+The project successfully progressed from raw hardware telemetry extraction to a robust, deployment-ready pipeline capable of universal side-channel detection on Linux kernels. The multi-model evaluation confirmed that side-channel signatures are micro-architectural constants, highly visible to Random Forest and CNN-LSTM models. The 99.97\% cross-OS SVM accuracy proves distribution-agnostic capabilities. Future extensions should prioritize diverse adversarial evasion testing and ARM architecture kernel modifications.
+
+\begin{thebibliography}{99}
+
+\bibitem{spectre}
+P. Kocher et al., ``Spectre Attacks: Exploiting Speculative Execution,'' \emph{Spectre Attack}, 2019. [Online]. Available: \url{https://www.spectreattack.com/spectre.pdf}
+
+\bibitem{meltdown}
+M. Lipp et al., ``Meltdown: Reading Kernel Memory from User Space,'' \emph{Meltdown Attack}, 2018. [Online]. Available: \url{https://meltdownattack.com/meltdown.pdf}
+
+\bibitem{yarom}
+Y. Yarom and K. Falkner, ``FLUSH+RELOAD: a High Resolution, Low Noise, L3 Cache Side-Channel Attack,'' in \emph{23rd USENIX Security Symposium}, 2014. [Online]. Available: \url{https://www.usenix.org/system/files/conference/usenixsecurity14/sec14-paper-yarom.pdf}
+
+\bibitem{liu}
+F. Liu et al., ``Last-Level Cache Side-Channel Attacks are Practical,'' \emph{2015 IEEE Symposium on Security and Privacy}, 2015. [Online]. Available: \url{https://eprint.iacr.org/2015/564.pdf}
+
+\bibitem{perfwiki}
+``Linux Perf Event Features and Design,'' \emph{Kernel.org Documentation}. [Online]. Available: \url{https://perf.wiki.kernel.org/index.php/Main_Page}
+
+\bibitem{intelsdm}
+Intel Corporation, ``Intel\textsuperscript{\tiny\textregistered} 64 and IA-32 Architectures Software Developer’s Manual.'' [Online]. Available: \url{https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html}
+
+\bibitem{musleh}
+M. Musleh et al., ``Detecting Cache-Based Side-Channel Attacks Using Hardware Performance Counters,'' \emph{2018 IEEE International Symposium on Hardware Oriented Security and Trust (HOST)}, 2018. [Online]. Available: \url{https://ieeexplore.ieee.org/document/8418610}
+
+\bibitem{surveydl}
+R. Benadjila et al., ``A Survey of Deep Learning for Side-Channel Analysis,'' \emph{arXiv preprint arXiv:1905.03164}, 2020. [Online]. Available: \url{https://arxiv.org/abs/1905.03164}
+
+\bibitem{tanenbaum}
+A. S. Tanenbaum and H. Bos, \emph{Modern Operating Systems (4th Edition)}. Pearson. [Online]. Available: \url{https://www.pearson.com/en-us/subject-catalog/p/modern-operating-systems/P200000003295}
+
+\end{thebibliography}
+
+\end{document}

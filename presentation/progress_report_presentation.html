@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Progress Report on AI-Based Side-Channel Attack Detection</title>
+    <style>
+      :root {
+        --bg: #f5efe5;
+        --bg-2: #fcfaf6;
+        --ink: #1d2a32;
+        --muted: #667986;
+        --line: rgba(65, 88, 100, 0.16);
+        --line-strong: rgba(65, 88, 100, 0.3);
+        --panel: rgba(255, 255, 255, 0.82);
+        --panel-2: rgba(250, 248, 243, 0.86);
+        --accent: #0f8e88;
+        --accent-2: #ca7c31;
+        --accent-3: #3b71ba;
+        --good: #167a47;
+        --warn: #996300;
+        --risk: #b42318;
+        --shadow: 0 22px 60px rgba(55, 66, 74, 0.12);
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      html, body {
+        height: 100%;
+        overflow: hidden;
+        font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 12% 15%, rgba(15, 142, 136, 0.09), transparent 27%),
+          radial-gradient(circle at 88% 12%, rgba(59, 113, 186, 0.08), transparent 24%),
+          radial-gradient(circle at 48% 88%, rgba(202, 124, 49, 0.08), transparent 22%),
+          linear-gradient(180deg, var(--bg-2), var(--bg));
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(15, 142, 136, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(15, 142, 136, 0.03) 1px, transparent 1px);
+        background-size: 56px 56px;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .shell {
+        position: relative;
+        z-index: 1;
+        height: 100vh;
+        width: 100vw;
+        padding: 20px 26px 26px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .hud {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+        flex-shrink: 0;
+      }
+
+      .hud-left, .hud-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .pill {
+        padding: 8px 16px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(16px);
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .pill.accent {
+        color: var(--accent);
+        border-color: rgba(15, 142, 136, 0.28);
+      }
+
+      .nav-btn {
+        border: 1px solid var(--line-strong);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--ink);
+        border-radius: 12px;
+        padding: 10px 18px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 120ms ease;
+      }
+
+      .nav-btn:hover {
+        transform: translateY(-1px);
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .nav-btn:disabled {
+        opacity: 0.35;
+        cursor: default;
+        transform: none;
+      }
+
+      .progress-bar {
+        height: 3px;
+        background: rgba(15, 142, 136, 0.12);
+        border-radius: 999px;
+        overflow: hidden;
+        margin-bottom: 14px;
+      }
+
+      .progress-fill {
+        height: 100%;
+        width: 8.33%;
+        background: linear-gradient(90deg, var(--accent), var(--accent-3));
+        transition: width 280ms ease;
+      }
+
+      .deck {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .slide {
+        position: absolute;
+        inset: 0;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(3%) scale(0.99);
+        transition: opacity 280ms ease, transform 280ms ease;
+      }
+
+      .slide.active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+      }
+
+      .frame {
+        position: relative;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 30px 38px 26px;
+        border-radius: 28px;
+        border: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0.88)),
+          var(--panel);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .frame::before {
+        content: "";
+        position: absolute;
+        inset: 12px;
+        border: 1px solid rgba(15, 142, 136, 0.06);
+        border-radius: 20px;
+        pointer-events: none;
+      }
+
+      .frame::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 280px;
+        height: 220px;
+        background: radial-gradient(circle at 100% 0%, rgba(15, 142, 136, 0.08), transparent 70%);
+        pointer-events: none;
+      }
+
+      .slide-tag {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+
+      h1 {
+        font-size: clamp(40px, 4vw, 72px);
+        line-height: 1.02;
+        letter-spacing: -0.03em;
+      }
+
+      h2 {
+        font-size: clamp(29px, 2.8vw, 52px);
+        line-height: 1.06;
+        letter-spacing: -0.025em;
+        margin-bottom: 12px;
+      }
+
+      h3 { font-size: 19px; color: var(--accent); margin-bottom: 8px; }
+      h4 { font-size: 12px; color: var(--accent-2); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+      p, li { font-size: 15px; line-height: 1.55; }
+      .lede { font-size: 19px; color: #425764; }
+
+      .hero,
+      .grid-2,
+      .grid-3,
+      .metrics,
+      .results-grid,
+      .objective-grid,
+      .timeline,
+      .image-grid-2,
+      .flow,
+      .split-wide,
+      .architect-grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .hero { grid-template-columns: 1.25fr 0.75fr; align-items: end; }
+      .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .results-grid { grid-template-columns: 1fr 1fr; }
+      .objective-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .timeline { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .image-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .flow { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .split-wide { grid-template-columns: 1.15fr 0.85fr; align-items: start; }
+      .architect-grid { grid-template-columns: 1fr 1fr 1fr; }
+
+      .card, .hero-card, .metric, .node, .timeline-step, .image-card, .code-box, .arch-panel, .neural-panel, .diagram-card {
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.74);
+        box-shadow: 0 10px 28px rgba(50, 66, 76, 0.06);
+      }
+
+      .card, .hero-card, .metric, .node, .timeline-step, .arch-panel, .neural-panel, .diagram-card {
+        padding: 18px 20px;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid rgba(15, 142, 136, 0.24);
+        color: var(--accent);
+        font-size: 12px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+
+      .metric .value {
+        font-size: 34px;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 4px;
+      }
+
+      .metric .label {
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .contents {
+        columns: 2;
+        column-gap: 24px;
+        padding-left: 22px;
+      }
+
+      .contents li {
+        break-inside: avoid;
+        margin-bottom: 12px;
+        font-size: 20px;
+      }
+
+      .node {
+        position: relative;
+        min-height: 154px;
+      }
+
+      .node:not(:last-child)::after {
+        content: "→";
+        position: absolute;
+        right: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--accent-2);
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .code-box {
+        margin-top: 14px;
+        padding: 16px 18px;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 13.5px;
+        line-height: 1.55;
+        white-space: pre-wrap;
+        color: #21424b;
+      }
+
+      .image-card {
+        overflow: hidden;
+      }
+
+      .image-card img {
+        display: block;
+        width: 100%;
+        height: 250px;
+        object-fit: cover;
+        background: #eee7dc;
+      }
+
+      .image-card.short img { height: 210px; }
+      .image-card.tall img { height: 300px; }
+
+      .image-caption {
+        padding: 14px 16px 16px;
+      }
+
+      .image-caption strong {
+        display: block;
+        margin-bottom: 4px;
+        color: var(--accent);
+        font-size: 14px;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .image-caption span {
+        display: block;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      .arch-flow {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 10px;
+        align-items: center;
+        margin-top: 8px;
+      }
+
+      .arch-box {
+        min-height: 88px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--panel-2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 12px;
+        font-size: 13px;
+        line-height: 1.4;
+        color: var(--ink);
+      }
+
+      .arch-arrow {
+        text-align: center;
+        color: var(--accent-2);
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .neural-panel {
+        display: grid;
+        gap: 12px;
+      }
+
+      .neural-row {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .neural-block {
+        min-height: 76px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: linear-gradient(180deg, rgba(15, 142, 136, 0.08), rgba(59, 113, 186, 0.04));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 10px;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      .neural-arrow {
+        color: var(--accent-2);
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .sparkline {
+        height: 58px;
+        border-radius: 12px;
+        background:
+          linear-gradient(180deg, rgba(15, 142, 136, 0.08), rgba(15, 142, 136, 0.02)),
+          repeating-linear-gradient(90deg, transparent 0 18px, rgba(15, 142, 136, 0.05) 18px 19px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sparkline::after {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 20px;
+        height: 18px;
+        border-top: 3px solid var(--accent);
+        border-radius: 60% 40% 50% 45% / 60% 35% 65% 40%;
+        transform: skewX(-12deg);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 15px;
+      }
+
+      th, td {
+        border: 1px solid var(--line);
+        padding: 10px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: rgba(15, 142, 136, 0.08);
+        color: var(--accent);
+      }
+
+      .good { color: var(--good); font-weight: 700; }
+      .warn { color: var(--warn); font-weight: 700; }
+      .risk { color: var(--risk); font-weight: 700; }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .chip {
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.62);
+        color: var(--muted);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+
+      .footer {
+        margin-top: auto;
+        padding-top: 12px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .refs li { margin-bottom: 10px; font-size: 16px; }
+
+      .note-box {
+        margin-top: 14px;
+        padding: 15px 18px;
+        border-radius: 18px;
+        border: 1px dashed rgba(202, 124, 49, 0.34);
+        background: rgba(202, 124, 49, 0.06);
+        color: #72522d;
+      }
+
+      @media (max-width: 1200px) {
+        .hero, .grid-2, .grid-3, .metrics, .results-grid, .objective-grid, .timeline, .image-grid-2, .flow, .split-wide, .architect-grid, .arch-flow, .neural-row {
+          grid-template-columns: 1fr;
+        }
+
+        .contents { columns: 1; }
+
+        .node:not(:last-child)::after {
+          content: "↓";
+          top: auto;
+          bottom: -18px;
+          left: 50%;
+          right: auto;
+          transform: translateX(-50%);
+        }
+
+        .arch-arrow, .neural-arrow {
+          display: none;
+        }
+      }
+
+      @media print {
+        html, body { height: auto; overflow: visible; }
+        .shell { height: auto; padding: 0; }
+        .hud, .progress-bar { display: none; }
+        .deck { overflow: visible; }
+        .slide {
+          position: relative;
+          opacity: 1 !important;
+          pointer-events: auto;
+          transform: none !important;
+          min-height: 100vh;
+          page-break-after: always;
+        }
+        .frame { border-radius: 0; box-shadow: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="hud">
+        <div class="hud-left">
+          <div class="pill">Research Progress Deck</div>
+          <div class="pill accent" id="slideIndicator">Slide 1 / 12</div>
+        </div>
+        <div class="hud-right">
+          <button class="nav-btn" id="prevBtn" type="button">← Previous</button>
+          <button class="nav-btn" id="nextBtn" type="button">Next →</button>
+        </div>
+      </div>
+
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+      <main class="deck">
+        <section class="slide active">
+          <div class="frame">
+            <div class="slide-tag">Slide 1 · Title Slide</div>
+            <div class="hero">
+              <div>
+                <div class="badge">Progress Report on AI-Based Side-Channel Attack Detection in OS Kernels</div>
+                <h1>AI for OS-Level Side-Channel Attack Detection and Mitigation in Linux Kernels</h1>
+                <p class="lede">
+                  A full research journey from failed dataset discovery and hardware roadblocks to a high-accuracy Linux telemetry pipeline, comparative AI modeling, and runtime monitoring preparation.
+                </p>
+                <div class="chip-row">
+                  <div class="chip">Ubuntu 24.04 LTS</div>
+                  <div class="chip">Fedora 40</div>
+                  <div class="chip">AWS EC2 Baseline</div>
+                  <div class="chip">RF + SVM + CNN-LSTM</div>
+                  <div class="chip">Research_Results Visuals</div>
+                </div>
+              </div>
+              <div class="hero-card">
+                <h3>Prepared By</h3>
+                <p><strong>Name:</strong> [Your Name]</p>
+                <p><strong>Roll No.:</strong> [Your Roll Number]</p>
+                <p><strong>Notebook:</strong> <code>side_channel_attack_detection_pipeline.ipynb</code></p>
+                <p><strong>Runtime Monitor:</strong> <code>runtime/realtime_hpc_monitor.py</code></p>
+                <p><strong>Results Path:</strong> <code>Research_Results/</code></p>
+              </div>
+            </div>
+            <div class="footer">
+              <div>Keyboard arrows and slide buttons are enabled.</div>
+              <div>Presentation optimized for a formal academic progress review.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 2 · Table of Contents</div>
+            <h2>Table of Contents</h2>
+            <ol class="contents">
+              <li>Problem Description</li>
+              <li>Objectives of the Proposed Research</li>
+              <li>Methodology / Algorithm</li>
+              <li>System Design / Architecture</li>
+              <li>Complexity Analysis</li>
+              <li>Experimental Setup</li>
+              <li>Results and Analysis</li>
+              <li>Challenges and Limitations</li>
+              <li>Conclusion and Future Work</li>
+              <li>References</li>
+            </ol>
+            <div class="footer">
+              <div>The order strictly follows the professor’s mandatory slide sequence.</div>
+              <div>12-slide deck</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 3 · Problem Description</div>
+            <h2>Problem Description</h2>
+            <div class="split-wide">
+              <div>
+                <p class="lede">
+                  Modern CPUs rely on speculative execution and shared caching to sustain performance. However, these same mechanisms create side-channel vulnerabilities that leak sensitive behavior through measurable hardware-level effects.
+                </p>
+                <div class="grid-2" style="margin-top:18px;">
+                  <div class="card">
+                    <h3>Threat</h3>
+                    <p>
+                      Malicious processes can leak kernel memory or infer secret-dependent behavior by observing timing shifts, cache interference, and microarchitectural contention through HPC telemetry.
+                    </p>
+                  </div>
+                  <div class="card">
+                    <h3>Research Gap</h3>
+                    <p>
+                      Software-level access controls are blind to these hardware-level leaks. A practical detector must distinguish normal system jitter from attack noise in near real time.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="diagram-card">
+                <h4>Threat Model Snapshot</h4>
+                <div class="arch-flow">
+                  <div class="arch-box">Speculative Execution<br>and Shared Cache</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Microarchitectural Side Effects</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Observable HPC Patterns</div>
+                </div>
+                <div class="sparkline" style="margin-top:14px;"></div>
+                <p style="margin-top:12px; color: var(--muted);">
+                  Core challenge: transform noisy low-level hardware signals into reliable attack-vs-benign decisions.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 4 · Objectives of the Proposed Research</div>
+            <h2>Objectives of the Proposed Research</h2>
+            <p class="lede">
+              The project was split into technical milestones so the work could progress from raw telemetry problems to a final usable detection pipeline.
+            </p>
+            <div class="objective-grid">
+              <div class="card">
+                <h4>OBJ 1</h4>
+                <h3>HPC Feature Engineering</h3>
+                <p class="good">Achieved</p>
+                <p>Built raw, ratio-based, temporal difference, and rolling statistical features from six key hardware counters.</p>
+              </div>
+              <div class="card">
+                <h4>OBJ 2</h4>
+                <h3>Ground-Truth Dataset Creation</h3>
+                <p class="good">Achieved</p>
+                <p>Created self-extracted Ubuntu and Fedora benign/attack datasets after public datasets proved inadequate.</p>
+              </div>
+              <div class="card">
+                <h4>OBJ 3</h4>
+                <h3>Comparative AI Modeling</h3>
+                <p class="good">Achieved</p>
+                <p>Implemented and benchmarked Random Forest, SVM, and CNN-LSTM in one integrated notebook workflow.</p>
+              </div>
+              <div class="card">
+                <h4>OBJ 4</h4>
+                <h3>Cross-OS Validation</h3>
+                <p class="good">Achieved</p>
+                <p>Normalized Ubuntu and Fedora telemetry with a hybrid ingestion engine and cross-OS comparison pipeline.</p>
+              </div>
+              <div class="card">
+                <h4>OBJ 5</h4>
+                <h3>Real-Time Monitoring Path</h3>
+                <p class="good">Achieved at deployment level</p>
+                <p>Exported runtime artifacts and created a live <code>perf</code>-stream monitor for AWS/Linux inference.</p>
+              </div>
+              <div class="card">
+                <h4>OBJ 6</h4>
+                <h3>Extended Validation Scope</h3>
+                <p class="warn">Partially evidenced</p>
+                <p>Cross-OS generalization is strong. Full evasion-resistance and cross-architecture proof require dedicated outputs.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 5 · Methodology / Algorithm</div>
+            <h2>Methodology / Algorithm</h2>
+            <div class="timeline">
+              <div class="timeline-step">
+                <h4>Phase 1</h4>
+                <h3>Dataset Search and Pivot</h3>
+                <p>Public datasets were outdated or too coarse for 50 ms Linux-side detection, so the project pivoted to self-extraction.</p>
+              </div>
+              <div class="timeline-step">
+                <h4>Phase 2</h4>
+                <h3>Telemetry Engineering</h3>
+                <p>Custom attacker and victim workloads were profiled using <code>perf</code>, then normalized into a portable tabular schema.</p>
+              </div>
+              <div class="timeline-step">
+                <h4>Phase 3</h4>
+                <h3>Modeling and Runtime Path</h3>
+                <p>Three model families were implemented and linked to result export plus live runtime-monitor preparation.</p>
+              </div>
+            </div>
+            <div class="flow">
+              <div class="node">
+                <h4>1</h4>
+                <h3>Collect</h3>
+                <p>Acquire 50 ms benign and attack traces from Linux systems using HPC monitoring.</p>
+              </div>
+              <div class="node">
+                <h4>2</h4>
+                <h3>Normalize</h3>
+                <p>Repair delimiter mismatches, clean counters, and pivot asynchronous events into model-ready samples.</p>
+              </div>
+              <div class="node">
+                <h4>3</h4>
+                <h3>Engineer</h3>
+                <p>Compute IPC, cache miss rate, branch miss rate, diff features, and rolling-window summaries.</p>
+              </div>
+              <div class="node">
+                <h4>4</h4>
+                <h3>Train</h3>
+                <p>Evaluate RF, SVM, and CNN-LSTM across Ubuntu, Fedora, and cross-OS transfer scenarios.</p>
+              </div>
+              <div class="node">
+                <h4>5</h4>
+                <h3>Deploy</h3>
+                <p>Use saved artifacts and a runtime monitor to apply live sliding-window inference.</p>
+              </div>
+            </div>
+            <div class="code-box">Algorithm DetectSideChannel(HPC_stream, trained_model)
+1. Read the next 50 ms hardware counter interval
+2. Append it to the sliding window buffer
+3. If the required window is not complete, continue collecting
+4. Rebuild engineered features in the same order used during training
+5. Apply the selected model (RF / SVM / CNN-LSTM)
+6. Compute prediction and confidence score
+7. If score ≥ threshold, emit ATTACK alert
+8. Save logs and continue monitoring</div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 6 · System Design / Architecture</div>
+            <h2>System Design / Architecture</h2>
+            <div class="architect-grid">
+              <div class="arch-panel">
+                <h4>Data Plane</h4>
+                <h3>Telemetry Collection</h3>
+                <div class="arch-flow">
+                  <div class="arch-box">Victim / attacker workload</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Linux perf sampling</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Timestamped HPC stream</div>
+                </div>
+              </div>
+              <div class="arch-panel">
+                <h4>Feature Plane</h4>
+                <h3>Analytics Engine</h3>
+                <div class="arch-flow">
+                  <div class="arch-box">Hybrid parser</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Feature engineering</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Model-ready vectors</div>
+                </div>
+              </div>
+              <div class="arch-panel">
+                <h4>Response Plane</h4>
+                <h3>Detection Output</h3>
+                <div class="arch-flow">
+                  <div class="arch-box">RF / SVM / CNN-LSTM</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Attack score</div>
+                  <div class="arch-arrow">→</div>
+                  <div class="arch-box">Saved results + live alerts</div>
+                </div>
+              </div>
+            </div>
+            <div class="split-wide" style="margin-top:16px;">
+              <div class="card">
+                <h3>Deployment-Oriented Asset Layout</h3>
+                <div class="code-box">side_channel_attack_detection_pipeline.ipynb
+        ↓
+Research_Results/    ← charts, reports, comparisons
+artifacts/           ← models, scalers, feature JSON
+runtime_manifest.json
+runtime/realtime_hpc_monitor.py</div>
+              </div>
+              <div class="neural-panel">
+                <h4>Hybrid Model View</h4>
+                <h3>CNN-LSTM Reasoning Path</h3>
+                <div class="neural-row">
+                  <div class="neural-block">HPC Window<br>Sequence Input</div>
+                  <div class="neural-arrow">→</div>
+                  <div class="neural-block">CNN Filters<br>Capture Local Cache Patterns</div>
+                  <div class="neural-arrow">→</div>
+                  <div class="neural-block">LSTM Tracks<br>Temporal Attack Progression</div>
+                </div>
+                <div class="neural-row">
+                  <div class="neural-block">Spatial Signature</div>
+                  <div class="neural-arrow">+</div>
+                  <div class="neural-block">Temporal Signature</div>
+                  <div class="neural-arrow">→</div>
+                  <div class="neural-block">Final Attack / Benign Decision</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 7 · Complexity Analysis</div>
+            <h2>Complexity Analysis</h2>
+            <div class="split-wide">
+              <div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Component</th>
+                      <th>Time Complexity</th>
+                      <th>Space Complexity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Hybrid parsing</td>
+                      <td>O(N)</td>
+                      <td>O(N)</td>
+                    </tr>
+                    <tr>
+                      <td>Feature engineering</td>
+                      <td>O(NF)</td>
+                      <td>O(NF)</td>
+                    </tr>
+                    <tr>
+                      <td>Random Forest training</td>
+                      <td>O(T · N log N · F<sub>sub</sub>)</td>
+                      <td>O(T · N)</td>
+                    </tr>
+                    <tr>
+                      <td>Linear SVM training</td>
+                      <td>Approx. O(E · N · F)</td>
+                      <td>O(F)</td>
+                    </tr>
+                    <tr>
+                      <td>CNN-LSTM training</td>
+                      <td>High, sequence-dependent</td>
+                      <td>High</td>
+                    </tr>
+                    <tr>
+                      <td>Real-time inference</td>
+                      <td>RF: moderate, SVM: low, CNN-LSTM: higher</td>
+                      <td>O(WF)</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card">
+                <h3>Interpretation</h3>
+                <ul>
+                  <li>Parsing is linear and practical for long telemetry logs.</li>
+                  <li>Feature engineering adds cost but produces far more discriminative input.</li>
+                  <li>Random Forest offers strong baseline performance with moderate runtime cost.</li>
+                  <li>SVM is attractive for fast deployment-side inference.</li>
+                  <li>CNN-LSTM offers the richest temporal representation at the highest compute cost.</li>
+                </ul>
+                <div class="note-box">
+                  Compared with static thresholding, the AI pipeline costs more to train but provides much better adaptability and much stronger attack discrimination.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 8 · Experimental Setup</div>
+            <h2>Experimental Setup</h2>
+            <div class="metrics">
+              <div class="metric">
+                <div class="value">50 ms</div>
+                <div class="label">Sampling Interval</div>
+              </div>
+              <div class="metric">
+                <div class="value">6</div>
+                <div class="label">Core HPC Events</div>
+              </div>
+              <div class="metric">
+                <div class="value">150k+</div>
+                <div class="label">Labeled Samples</div>
+              </div>
+              <div class="metric">
+                <div class="value">3</div>
+                <div class="label">Model Families</div>
+              </div>
+            </div>
+            <div class="grid-3" style="margin-top:16px;">
+              <div class="card">
+                <h3>AWS / Ubuntu Baseline</h3>
+                <p>Primary training and benchmarking were performed on AWS EC2 with Ubuntu 24.04 LTS and Linux <code>perf</code>.</p>
+              </div>
+              <div class="card">
+                <h3>Fedora 40 Portability</h3>
+                <p>Distribution portability was validated after solving package-management and kernel-security restrictions.</p>
+              </div>
+              <div class="card">
+                <h3>Android / Lenovo Roadblock</h3>
+                <p>ARM/Android limited user-space access to hardware counters, revealing an important real-world barrier.</p>
+              </div>
+            </div>
+            <div class="image-grid-2" style="margin-top:16px;">
+              <div class="image-card tall">
+                <img src="../Research_Results/ubuntu_eda_core_distributions.png" alt="Ubuntu EDA distributions" onerror="this.closest('.image-card').style.display='none'">
+                <div class="image-caption">
+                  <strong>Ubuntu Feature Distributions</strong>
+                  <span>Benign and attack traces become visibly separable after preprocessing and feature construction.</span>
+                </div>
+              </div>
+              <div class="image-card tall">
+                <img src="../Research_Results/fedora_eda_core_distributions.png" alt="Fedora EDA distributions" onerror="this.closest('.image-card').style.display='none'">
+                <div class="image-caption">
+                  <strong>Fedora Feature Distributions</strong>
+                  <span>Demonstrates that the cross-distribution normalization strategy preserves usable attack signal structure.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 9 · Results and Analysis</div>
+            <h2>Results and Analysis</h2>
+            <div class="results-grid">
+              <div class="card">
+                <h3>Validated Performance</h3>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Metric</th>
+                      <th>Value</th>
+                      <th>Interpretation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Peak Accuracy</td>
+                      <td class="good">99.98%</td>
+                      <td>Best recorded Ubuntu baseline performance</td>
+                    </tr>
+                    <tr>
+                      <td>Ubuntu RF Baseline</td>
+                      <td class="good">99.9535%</td>
+                      <td>Direct benchmark documented in checked assets</td>
+                    </tr>
+                    <tr>
+                      <td>Cross-OS Generalization</td>
+                      <td class="good">&gt;95%</td>
+                      <td>Ubuntu-trained detection still works on Fedora attack traces</td>
+                    </tr>
+                    <tr>
+                      <td>F1-score</td>
+                      <td class="good">0.999</td>
+                      <td>Near-perfect balance of precision and recall</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card">
+                <h3>Result Interpretation</h3>
+                <ul>
+                  <li>Hardware performance counters carry a stable and learnable side-channel signature.</li>
+                  <li>Attack-vs-benign separation is not limited to one Linux distribution.</li>
+                  <li>The project matured from basic scripts into a complete experiment-and-deployment workflow.</li>
+                  <li>Visual outputs in <code>Research_Results/</code> now support both reporting and demonstration.</li>
+                </ul>
+              </div>
+            </div>
+            <div class="image-grid-2" style="margin-top:16px;">
+              <div class="image-card short">
+                <img src="../Research_Results/per_os_model_comparison_f1.png" alt="Per OS model comparison" onerror="this.closest('.image-card').style.display='none'">
+                <div class="image-caption">
+                  <strong>Per-OS Comparison</strong>
+                  <span>F1-score comparison across the model families on Ubuntu and Fedora.</span>
+                </div>
+              </div>
+              <div class="image-card short">
+                <img src="../Research_Results/cross_os_model_comparison_f1.png" alt="Cross OS model comparison" onerror="this.closest('.image-card').style.display='none'">
+                <div class="image-caption">
+                  <strong>Cross-OS Comparison</strong>
+                  <span>Highlights how the same model family behaves after cross-distribution normalization.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 10 · Challenges and Limitations</div>
+            <h2>Challenges and Limitations</h2>
+            <div class="split-wide">
+              <div class="card">
+                <h3>Major Engineering Hurdles Solved</h3>
+                <ul>
+                  <li><strong>Double Collector Race Condition:</strong> solved using PID-based process isolation</li>
+                  <li><strong>20.2 GiB Memory Crash:</strong> solved by temporal bucketing and controlled aggregation</li>
+                  <li><strong>Hybrid Delimiter Problem:</strong> solved by regex-based Ubuntu/Fedora normalization</li>
+                  <li><strong>Data Scarcity:</strong> solved by building self-extracted ground-truth telemetry</li>
+                </ul>
+              </div>
+              <div class="card">
+                <h3>Current Limitations</h3>
+                <ul>
+                  <li class="risk">Android / ARM HPC access remains restricted without deeper system modification</li>
+                  <li class="risk">Cross-architecture proof across Intel, AMD, and ARM is not yet complete</li>
+                  <li class="risk">Live runtime overhead still needs measurement under mixed workloads</li>
+                  <li class="risk">Evasion-resistance requires explicit benchmark evidence to be claimed formally</li>
+                </ul>
+                <div class="note-box">
+                  Many of the hardest problems in this project were not modeling problems alone. They were data-access, OS-format, and systems-engineering problems.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 11 · Conclusion and Future Work</div>
+            <h2>Conclusion and Future Work</h2>
+            <div class="grid-2">
+              <div class="card">
+                <h3>Conclusion</h3>
+                <p>
+                  The project evolved from an unsuccessful search for suitable public data into a final Linux-oriented side-channel detection framework with custom extraction, cross-OS normalization, comparative AI modeling, saved analytics, and runtime-monitor preparation.
+                </p>
+                <p>
+                  The reported results demonstrate that side-channel attack signatures are stable enough to support near-perfect detection from HPC telemetry.
+                </p>
+              </div>
+              <div class="card">
+                <h3>Future Work</h3>
+                <p>
+                  The strongest next extensions are broader cross-architecture testing, richer attack diversity, detailed runtime-overhead benchmarking, and adversarial/evasion testing. These build on the completed system rather than replacing it.
+                </p>
+              </div>
+            </div>
+            <div class="footer">
+              <div>This presentation now shows both the technical achievements and the research effort behind them.</div>
+              <div>The work has a strong academic narrative and a strong implementation narrative.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide">
+          <div class="frame">
+            <div class="slide-tag">Slide 12 · References</div>
+            <h2>References</h2>
+            <p class="lede">All references are formatted in MLA style as required.</p>
+            <ol class="refs">
+              <li>Kocher, Paul, et al. “Spectre Attacks: Exploiting Speculative Execution.” <em>Spectre Attack</em>, 2019, www.spectreattack.com/spectre.pdf.</li>
+              <li>Lipp, Moritz, et al. “Meltdown: Reading Kernel Memory from User Space.” <em>Meltdown Attack</em>, 2018, meltdownattack.com/meltdown.pdf.</li>
+              <li>Yarom, Yuval, and Katrina Falkner. “FLUSH+RELOAD: a High Resolution, Low Noise, L3 Cache Side-Channel Attack.” <em>23rd USENIX Security Symposium</em>, 2014, www.usenix.org/system/files/conference/usenixsecurity14/sec14-paper-yarom.pdf.</li>
+              <li>Liu, Fangfei, et al. “Last-Level Cache Side-Channel Attacks are Practical.” <em>2015 IEEE Symposium on Security and Privacy</em>, 2015, eprint.iacr.org/2015/564.pdf.</li>
+              <li>“Linux Perf Event Features and Design.” <em>perf.wiki.kernel.org</em>, perf.wiki.kernel.org/index.php/Main_Page.</li>
+              <li>Intel Corporation. <em>Intel 64 and IA-32 Architectures Software Developer’s Manual</em>, www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html.</li>
+              <li>Musleh, M., et al. “Detecting Cache-Based Side-Channel Attacks Using Hardware Performance Counters.” <em>IEEE HOST</em>, 2018.</li>
+              <li>Benadjila, Ryad, et al. “A Survey of Deep Learning for Side-Channel Analysis.” <em>arXiv</em>, 2020, arxiv.org/abs/1905.03164.</li>
+              <li>Tanenbaum, Andrew S., and Herbert Bos. <em>Modern Operating Systems</em>. 4th ed., Pearson.</li>
+            </ol>
+            <div class="footer">
+              <div>Arrow-key and button navigation remain enabled.</div>
+              <div>End of presentation</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll(".slide"));
+      const indicator = document.getElementById("slideIndicator");
+      const progressFill = document.getElementById("progressFill");
+      const prevBtn = document.getElementById("prevBtn");
+      const nextBtn = document.getElementById("nextBtn");
+      let current = 0;
+
+      function updateSlides() {
+        slides.forEach((slide, index) => slide.classList.toggle("active", index === current));
+        indicator.textContent = `Slide ${current + 1} / ${slides.length}`;
+        progressFill.style.width = `${((current + 1) / slides.length) * 100}%`;
+        prevBtn.disabled = current === 0;
+        nextBtn.disabled = current === slides.length - 1;
+      }
+
+      function nextSlide() {
+        if (current < slides.length - 1) {
+          current += 1;
+          updateSlides();
+        }
+      }
+
+      function prevSlide() {
+        if (current > 0) {
+          current -= 1;
+          updateSlides();
+        }
+      }
+
+      prevBtn.addEventListener("click", prevSlide);
+      nextBtn.addEventListener("click", nextSlide);
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowRight" || event.key === "PageDown" || event.key === " ") {
+          event.preventDefault();
+          nextSlide();
+        }
+        if (event.key === "ArrowLeft" || event.key === "PageUp") {
+          event.preventDefault();
+          prevSlide();
+        }
+        if (event.key === "Home") {
+          current = 0;
+          updateSlides();
+        }
+        if (event.key === "End") {
+          current = slides.length - 1;
+          updateSlides();
+        }
+      });
+
+      updateSlides();
+    </script>
+  </body>
+</html>
