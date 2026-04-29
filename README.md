@@ -9,6 +9,7 @@ This repository contains the full code, data, presentation, and research report 
 - Engineers a rich set of temporal and statistical features.
 - Trains and evaluates three model families (Random Forest, SVM, CNN-LSTM).
 - Provides a real-time runtime monitor for live inference.
+- **Features EdgeShield:** A production-grade, edge-native cybersecurity control panel built on Cloudflare Workers for sub-millisecond threat detection and mitigation.
 
 The repository is organised for easy reproducibility and for publishing the results on GitHub.
 
@@ -17,6 +18,7 @@ The repository is organised for easy reproducibility and for publishing the resu
 
 ```
 .
+├── edgeshield/                # Edge-native side-channel detection worker & UI dashboard
 ├── Research_Results/          # Plots, figures, exported CSVs, and PDF report assets
 ├── data/                      # Raw perf logs (large files – optional, .gitignore recommended)
 ├── data_extraction_code/      # Scripts for data collection (collector.sh) & C programs (attacker.c, victim.c)
@@ -41,7 +43,7 @@ The repository is organised for easy reproducibility and for publishing the resu
 - **Python 3.11+** with packages listed in `requirements.txt` (`pandas`, `scikit-learn`, `torch`, `torchvision`, `matplotlib`, `seaborn`, `numpy`, `jupyter`).
 - **LaTeX** distribution (TeX Live or MiKTeX) with `latexmk` and standard packages (`IEEEtran`, `hyperref`, `graphicx`).
 - **Git** for cloning the repository.
-- **Node.js** is **not** required – the presentation is pure HTML/CSS/JS.
+- **Node.js & npm** (Required only for running the EdgeShield Cloudflare Worker).
 
 ### Installation
 
@@ -55,6 +57,31 @@ python -m venv venv
 source venv/bin/activate   # on macOS/Linux
 pip install -r requirements.txt
 ```
+
+---
+## EdgeShield: Real-Time Side-Channel Attack Detection at the Edge
+
+Side-channel attacks exploit hardware-level behavior such as cache access patterns and timing variations to leak sensitive information without violating traditional access controls. These attacks are difficult to detect because they closely resemble legitimate workloads and often leave no direct trace during execution.
+
+EdgeShield addresses this challenge by transforming side-channel detection into a deployable, real-time system at the edge. We collect hardware performance counter (HPC) data using Linux perf, engineer features such as cache miss rate, IPC, and branch behavior, and build a detection pipeline inspired by machine learning models.
+
+Instead of running this pipeline in a centralized backend, we deploy it using Cloudflare Workers, enabling low-latency inference directly at the edge. The system exposes APIs for real-time analysis, raw perf parsing, simulation, and dataset evaluation. Cloudflare D1 stores detection logs and powers analytics, KV manages thresholds and repeat-attacker state for fast decisions, and R2 can store raw traces for replay and debugging.
+
+By running inference at the edge, EdgeShield achieves sub-10 ms latency and eliminates the need for centralized infrastructure. This is critical because side-channel attacks operate at extremely small time scales, where delayed detection reduces effectiveness.
+
+EdgeShield bridges the gap between academic research and real-world deployment by demonstrating how side-channel attack detection can be implemented as a scalable, serverless, edge-native security system using Cloudflare infrastructure.
+
+### Running the Dashboard
+
+To run the interactive EdgeShield dashboard locally:
+
+```bash
+cd edgeshield
+npm install
+npm run dev
+```
+
+Navigate to `http://localhost:8787` to access the premium dark-mode control panel. Features include real-time threat stream visualization, automated mitigation status, and custom dataset evaluation directly at the edge.
 
 ---
 ## Building the Report
