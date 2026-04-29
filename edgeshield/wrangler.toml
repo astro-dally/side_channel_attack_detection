@@ -1,0 +1,36 @@
+name = "edgeshield"
+main = "src/index.js"
+compatibility_date = "2026-04-29"
+workers_dev = true
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "EDGESHIELD_DB"
+database_name = "edgeshield"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[kv_namespaces]]
+binding = "EDGESHIELD_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[env.production]
+name = "edgeshield"
+workers_dev = true
+
+[[env.production.d1_databases]]
+binding = "EDGESHIELD_DB"
+database_name = "edgeshield"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[[env.production.kv_namespaces]]
+binding = "EDGESHIELD_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+# R2 bucket removed - optional feature for trace storage
+# Uncomment below if you enable R2 in Cloudflare Dashboard
+# [[env.production.r2_buckets]]
+# binding = "EDGESHIELD_TRACES"
+# bucket_name = "edgeshield-traces"
+ 

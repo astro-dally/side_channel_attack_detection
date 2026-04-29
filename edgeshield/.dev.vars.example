@@ -1,0 +1,6 @@
+# Copy to .dev.vars for local Worker runtime variables.
+#
+# Resource bindings such as EDGESHIELD_DB, EDGESHIELD_KV, and
+# EDGESHIELD_TRACES are declared in wrangler.toml, not here.
+
+# ADMIN_TOKEN=replace-with-a-local-token-when-admin-routes-exist

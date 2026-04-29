@@ -1,0 +1,293 @@
+{
+  "generated_at": "2026-04-29T07:56:46.337Z",
+  "url": "http://127.0.0.1:8787",
+  "elapsed_ms": 2011,
+  "sampled": true,
+  "max_per_file": 500,
+  "datasets": [
+    {
+      "name": "ubuntu_benign",
+      "os": "ubuntu",
+      "label": "benign",
+      "file": "/Users/dally/side_channel_attack_detection/data/benign_data.csv"
+    },
+    {
+      "name": "ubuntu_attack",
+      "os": "ubuntu",
+      "label": "attack",
+      "file": "/Users/dally/side_channel_attack_detection/data/attack_data_final.csv"
+    },
+    {
+      "name": "fedora_benign",
+      "os": "fedora",
+      "label": "benign",
+      "file": "/Users/dally/side_channel_attack_detection/data/benign_fedora.csv"
+    },
+    {
+      "name": "fedora_attack",
+      "os": "fedora",
+      "label": "attack",
+      "file": "/Users/dally/side_channel_attack_detection/data/attack_fedora.csv"
+    }
+  ],
+  "summary": {
+    "total": 2000,
+    "confusion_matrix": {
+      "tp": 996,
+      "tn": 998,
+      "fp": 2,
+      "fn": 4
+    },
+    "accuracy": 0.997,
+    "attack_recall": 0.996,
+    "benign_recall": 0.998,
+    "false_positive_rate": 0.002,
+    "precision": 0.9979959919839679,
+    "f1": 0.9969969969969971,
+    "latency_ms": {
+      "avg": 1.0275,
+      "p50": 1,
+      "p95": 1,
+      "max": 6
+    },
+    "client_latency_ms": {
+      "avg": 13.94423723549998,
+      "p50": 11.858291999999892,
+      "p95": 21.747583000000304,
+      "max": 156.56733299999996
+    },
+    "avg_confidence": 0.9776916000000051
+  },
+  "by_dataset": {
+    "ubuntu_benign": {
+      "total": 500,
+      "confusion_matrix": {
+        "tp": 0,
+        "tn": 500,
+        "fp": 0,
+        "fn": 0
+      },
+      "accuracy": 1,
+      "attack_recall": 0,
+      "benign_recall": 1,
+      "false_positive_rate": 0,
+      "precision": 0,
+      "f1": 0,
+      "latency_ms": {
+        "avg": 1.098,
+        "p50": 1,
+        "p95": 1,
+        "max": 6
+      },
+      "client_latency_ms": {
+        "avg": 17.372129911999988,
+        "p50": 11.955417000000125,
+        "p95": 33.34670899999992,
+        "max": 156.56733299999996
+      },
+      "avg_confidence": 1
+    },
+    "ubuntu_attack": {
+      "total": 500,
+      "confusion_matrix": {
+        "tp": 497,
+        "tn": 0,
+        "fp": 0,
+        "fn": 3
+      },
+      "accuracy": 0.994,
+      "attack_recall": 0.994,
+      "benign_recall": 0,
+      "false_positive_rate": 0,
+      "precision": 1,
+      "f1": 0.9969909729187563,
+      "latency_ms": {
+        "avg": 1,
+        "p50": 1,
+        "p95": 1,
+        "max": 1
+      },
+      "client_latency_ms": {
+        "avg": 11.656621251999992,
+        "p50": 11.2175000000002,
+        "p95": 16.309082999999646,
+        "max": 22.196332999999868
+      },
+      "avg_confidence": 0.9176176000000008
+    },
+    "fedora_benign": {
+      "total": 500,
+      "confusion_matrix": {
+        "tp": 0,
+        "tn": 498,
+        "fp": 2,
+        "fn": 0
+      },
+      "accuracy": 0.996,
+      "attack_recall": 0,
+      "benign_recall": 0.996,
+      "false_positive_rate": 0.004,
+      "precision": 0,
+      "f1": 0,
+      "latency_ms": {
+        "avg": 1.006,
+        "p50": 1,
+        "p95": 1,
+        "max": 4
+      },
+      "client_latency_ms": {
+        "avg": 14.107420513999998,
+        "p50": 11.91274999999996,
+        "p95": 31.69145800000024,
+        "max": 35.66258300000027
+      },
+      "avg_confidence": 0.9969275999999998
+    },
+    "fedora_attack": {
+      "total": 500,
+      "confusion_matrix": {
+        "tp": 499,
+        "tn": 0,
+        "fp": 0,
+        "fn": 1
+      },
+      "accuracy": 0.998,
+      "attack_recall": 0.998,
+      "benign_recall": 0,
+      "false_positive_rate": 0,
+      "precision": 1,
+      "f1": 0.998998998998999,
+      "latency_ms": {
+        "avg": 1.006,
+        "p50": 1,
+        "p95": 1,
+        "max": 2
+      },
+      "client_latency_ms": {
+        "avg": 12.640777263999995,
+        "p50": 12.495082999999795,
+        "p95": 17.54245800000035,
+        "max": 21.747583000000304
+      },
+      "avg_confidence": 0.9962212000000001
+    }
+  },
+  "sample_misclassifications": [
+    {
+      "index": 500,
+      "expected": "attack",
+      "predicted": "benign",
+      "confidence": 0.9054,
+      "latency_ms": 1,
+      "client_latency_ms": 11.474999999999909,
+      "attack_score": 0.0946,
+      "dataset": "ubuntu_attack",
+      "os": "ubuntu",
+      "features": {
+        "cache_misses": 34766,
+        "cache_references": 1410428,
+        "instructions": 4697109,
+        "cycles": 13661294,
+        "branches": 794257,
+        "branch_misses": 86319
+      }
+    },
+    {
+      "index": 564,
+      "expected": "attack",
+      "predicted": "benign",
+      "confidence": 0.7712,
+      "latency_ms": 1,
+      "client_latency_ms": 11.099791000000096,
+      "attack_score": 0.2288,
+      "dataset": "ubuntu_attack",
+      "os": "ubuntu",
+      "features": {
+        "cache_misses": 165098,
+        "cache_references": 3500117,
+        "instructions": 33193585,
+        "cycles": 45416821,
+        "branches": 3953180,
+        "branch_misses": 144200
+      }
+    },
+    {
+      "index": 817,
+      "expected": "attack",
+      "predicted": "benign",
+      "confidence": 0.7712,
+      "latency_ms": 1,
+      "client_latency_ms": 11.885708999999679,
+      "attack_score": 0.2288,
+      "dataset": "ubuntu_attack",
+      "os": "ubuntu",
+      "features": {
+        "cache_misses": 46345,
+        "cache_references": 1275813,
+        "instructions": 16219672,
+        "cycles": 22010834,
+        "branches": 3716960,
+        "branch_misses": 76277
+      }
+    },
+    {
+      "index": 1097,
+      "expected": "benign",
+      "predicted": "attack",
+      "confidence": 0.6103,
+      "latency_ms": 1,
+      "client_latency_ms": 34.23912500000006,
+      "attack_score": 0.6103,
+      "dataset": "fedora_benign",
+      "os": "fedora",
+      "features": {
+        "cache_misses": 52,
+        "cache_references": 96649,
+        "instructions": 306936,
+        "cycles": 803438,
+        "branches": 64489,
+        "branch_misses": 8462
+      }
+    },
+    {
+      "index": 1197,
+      "expected": "benign",
+      "predicted": "attack",
+      "confidence": 0.6103,
+      "latency_ms": 1,
+      "client_latency_ms": 12.005750000000262,
+      "attack_score": 0.6103,
+      "dataset": "fedora_benign",
+      "os": "fedora",
+      "features": {
+        "cache_misses": 698,
+        "cache_references": 92100,
+        "instructions": 294050,
+        "cycles": 779567,
+        "branches": 61645,
+        "branch_misses": 7996
+      }
+    },
+    {
+      "index": 1500,
+      "expected": "attack",
+      "predicted": "benign",
+      "confidence": 1,
+      "latency_ms": 1,
+      "client_latency_ms": 13.149875000000065,
+      "attack_score": 0,
+      "dataset": "fedora_attack",
+      "os": "fedora",
+      "features": {
+        "cache_misses": 15115,
+        "cache_references": 223986,
+        "instructions": 1750676,
+        "cycles": 4753477,
+        "branches": 333119,
+        "branch_misses": 19745
+      }
+    }
+  ],
+  "output": "/Users/dally/side_channel_attack_detection/edgeshield/reports/dataset-evaluation.json",
+  "markdown_output": "/Users/dally/side_channel_attack_detection/edgeshield/reports/dataset-evaluation.md"
+}

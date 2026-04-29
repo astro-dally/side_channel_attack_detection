@@ -1,0 +1,202 @@
+export const OPENAPI_SPEC = {
+  openapi: "3.0.3",
+  info: {
+    title: "EdgeShield API",
+    version: "1.0.0",
+    description: "Real-time side-channel attack detection at the edge."
+  },
+  servers: [
+    { url: "https://edgeshield.astro-edgeshield.workers.dev" },
+    { url: "http://127.0.0.1:8787" }
+  ],
+  paths: {
+    "/health": {
+      get: {
+        summary: "Health check",
+        responses: { "200": { description: "Service status" } }
+      }
+    },
+    "/features": {
+      get: {
+        summary: "Return model feature order",
+        responses: { "200": { description: "Feature order" } }
+      }
+    },
+    "/analyze": {
+      post: {
+        summary: "Analyze raw or engineered HPC features",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/AnalyzeRequest" }
+            }
+          }
+        },
+        responses: {
+          "200": { description: "Detection result", content: { "application/json": { schema: { $ref: "#/components/schemas/Detection" } } } },
+          "400": { description: "Invalid payload" }
+        }
+      }
+    },
+    "/analyze/raw": {
+      post: {
+        summary: "Parse perf stat output and analyze the latest complete window",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  perf_output: { type: "string" },
+                  sourceId: { type: "string" }
+                },
+                required: ["perf_output"]
+              }
+            },
+            "text/plain": { schema: { type: "string" } }
+          }
+        },
+        responses: {
+          "200": { description: "Detection result" },
+          "400": { description: "No complete perf windows found" }
+        }
+      }
+    },
+    "/simulate": {
+      post: {
+        summary: "Generate and analyze a simulated sample",
+        requestBody: {
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  mode: { type: "string", enum: ["attack", "benign"] },
+                  os: { type: "string", enum: ["ubuntu", "fedora", "mixed"] },
+                  seed: { type: "integer" },
+                  sourceId: { type: "string" }
+                }
+              }
+            }
+          }
+        },
+        responses: { "200": { description: "Detection result" } }
+      }
+    },
+    "/dataset/test": {
+      post: {
+        summary: "Evaluate a bounded labeled dataset",
+        parameters: [
+          { name: "label", in: "query", required: false, schema: { type: "string", enum: ["attack", "benign"] } }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "text/csv": { schema: { type: "string" } },
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  label: { type: "string", enum: ["attack", "benign"] },
+                  rows: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        label: { type: "string", enum: ["attack", "benign"] },
+                        features: { $ref: "#/components/schemas/RawFeatures" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          "200": { description: "Dataset metrics" },
+          "400": { description: "Validation failed" },
+          "413": { description: "Payload too large" }
+        }
+      }
+    },
+    "/api/stats": {
+      get: {
+        summary: "Return persisted D1 statistics",
+        responses: { "200": { description: "Totals and recent detections" }, "503": { description: "Schema missing" } }
+      }
+    },
+    "/api/evaluation": {
+      get: {
+        summary: "Return bundled benchmark evaluation summary",
+        responses: { "200": { description: "Evaluation summary" } }
+      }
+    },
+    "/admin/thresholds": {
+      get: {
+        summary: "Read active thresholds",
+        security: [{ AdminToken: [] }],
+        responses: { "200": { description: "Thresholds" }, "401": { description: "Unauthorized" } }
+      },
+      post: {
+        summary: "Update active thresholds",
+        security: [{ AdminToken: [] }],
+        requestBody: {
+          content: {
+            "application/json": { schema: { type: "object", additionalProperties: { type: "number" } } }
+          }
+        },
+        responses: { "200": { description: "Updated thresholds" }, "401": { description: "Unauthorized" } }
+      }
+    }
+  },
+  components: {
+    securitySchemes: {
+      AdminToken: { type: "http", scheme: "bearer" }
+    },
+    schemas: {
+      RawFeatures: {
+        type: "object",
+        required: ["cache_misses", "cache_references", "instructions", "cycles", "branches", "branch_misses"],
+        properties: {
+          cache_misses: { type: "number" },
+          cache_references: { type: "number" },
+          instructions: { type: "number" },
+          cycles: { type: "number" },
+          branches: { type: "number" },
+          branch_misses: { type: "number" }
+        }
+      },
+      AnalyzeRequest: {
+        type: "object",
+        required: ["features"],
+        properties: {
+          sourceId: { type: "string" },
+          features: {
+            oneOf: [
+              { type: "array", items: { type: "number" } },
+              { $ref: "#/components/schemas/RawFeatures" }
+            ]
+          },
+          metadata: { type: "object" }
+        }
+      },
+      Detection: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          timestamp: { type: "string" },
+          prediction: { type: "string", enum: ["attack", "benign"] },
+          confidence: { type: "number" },
+          attack_score: { type: "number" },
+          latency_ms: { type: "number" },
+          worker_latency_ms: { type: "number" },
+          reasons: { type: "array", items: { type: "string" } },
+          feature_contributions: { type: "array", items: { type: "object" } }
+        }
+      }
+    }
+  }
+};
