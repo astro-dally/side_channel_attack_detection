@@ -1,0 +1,48 @@
+{
+  "rows": [
+    {
+      "features": {
+        "cache_misses": 149,
+        "cache_references": 139866,
+        "instructions": 704519,
+        "cycles": 2637200,
+        "branches": 122831,
+        "branch_misses": 11525
+      },
+      "label": "attack"
+    },
+    {
+      "features": {
+        "cache_misses": 152,
+        "cache_references": 160392,
+        "instructions": 728285,
+        "cycles": 2746720,
+        "branches": 127052,
+        "branch_misses": 13828
+      },
+      "label": "attack"
+    },
+    {
+      "features": {
+        "cache_misses": 78887,
+        "cache_references": 556178,
+        "instructions": 1706780,
+        "cycles": 4978970,
+        "branches": 299316,
+        "branch_misses": 34462
+      },
+      "label": "benign"
+    },
+    {
+      "features": {
+        "cache_misses": 3422,
+        "cache_references": 90858,
+        "instructions": 281075,
+        "cycles": 759759,
+        "branches": 59167,
+        "branch_misses": 7933
+      },
+      "label": "benign"
+    }
+  ]
+}

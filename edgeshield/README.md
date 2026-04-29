@@ -195,13 +195,37 @@ or `text/plain` perf output. The Worker parses complete timestamp windows contai
 
 Accepts CSV with raw counter columns and an optional `label` column:
 
+```csv
+cache_misses,cache_references,instructions,cycles,branches,branch_misses,label
+149,139866,704519,2637200,122831,11525,attack
+78887,556178,1706780,4978970,299316,34462,benign
+```
+
+Sample files are available at:
+
+- `docs/sample-dataset.csv`
+- `docs/sample-dataset.json`
+- `docs/data-format.md`
+
 ```bash
 curl -X POST http://127.0.0.1:8787/dataset/test \
   -H "Content-Type: text/csv" \
-  --data-binary @your_dataset.csv
+  --data-binary @docs/sample-dataset.csv
 ```
 
 The endpoint evaluates up to 1000 rows per request and returns accuracy, recall, false-positive rate, a confusion matrix, and sample misclassifications.
+
+To collect matching raw data on Linux, use the same six hardware performance counters at the 50 ms sampling interval:
+
+```bash
+sudo perf stat \
+  -I 50 \
+  -x , \
+  -e cache-misses,cache-references,instructions,cycles,branches,branch-misses \
+  -- ./your_program
+```
+
+Each complete timestamp window from `perf` should become one upload row. The `label` value should be `attack` or `benign` when ground truth is known; omit it when you only need predictions.
 
 ### `/admin/thresholds`
 

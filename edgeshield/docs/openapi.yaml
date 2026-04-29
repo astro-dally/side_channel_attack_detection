@@ -65,10 +65,16 @@ paths:
   /dataset/test:
     post:
       summary: Evaluate a bounded labeled dataset
+      description: >
+        Upload CSV or JSON rows containing the six required raw hardware
+        performance counters: cache_misses, cache_references, instructions,
+        cycles, branches, and branch_misses. A label field/column is optional
+        and may be attack or benign when ground truth is known.
       parameters:
         - name: label
           in: query
           required: false
+          description: Optional fallback label when every uploaded row has the same ground truth.
           schema:
             type: string
             enum: [attack, benign]
@@ -78,9 +84,34 @@ paths:
           text/csv:
             schema:
               type: string
+              example: |
+                cache_misses,cache_references,instructions,cycles,branches,branch_misses,label
+                149,139866,704519,2637200,122831,11525,attack
+                78887,556178,1706780,4978970,299316,34462,benign
           application/json:
             schema:
               type: object
+              properties:
+                rows:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      features:
+                        type: object
+                      label:
+                        type: string
+                        enum: [attack, benign]
+              example:
+                rows:
+                  - features:
+                      cache_misses: 149
+                      cache_references: 139866
+                      instructions: 704519
+                      cycles: 2637200
+                      branches: 122831
+                      branch_misses: 11525
+                    label: attack
       responses:
         "200":
           description: Dataset metrics
